@@ -6,7 +6,7 @@ import plotly.express as px
 import seaborn as sns
 import plotly.figure_factory as ff
 
-
+st.sidebar.image('https://img.olympics.com/images/image/private//f_auto/primary/o3eae7skxxu8gba2ctwp', width=300)
 st.sidebar.title('Olympics Analysis')
 
 user_menu = st.sidebar.radio('Select Analysis:', ['Medal Tally', 'Overall Analysis', 'Country-wise Analysis', 'Athlete-wise Analysis'])
@@ -99,7 +99,7 @@ if user_menu == 'Overall Analysis':
     ax=ax,
     annot=True,
     fmt='d',
-    cmap='Purples_r', # Adjust colormap as needed
+    cmap='Blues_r', # Adjust colormap as needed
     vmin = 50,
     vmax = 0,
     cbar_kws={'label': 'Number of Events'})
@@ -185,7 +185,7 @@ if user_menu == 'Athlete-wise Analysis':
     if sports:
         st.write('\n'.join(f"- {sport}" for sport in sports))
     else:
-        st.write("No sports data available for this athlete.")
+        st.write("No sports available for this athlete in which he won a medal.")
 
     st.header(f"{selected_athlete} Participated in the Following Events")
     events = athlete_medal_tally['Event'].unique().tolist()
@@ -193,7 +193,7 @@ if user_menu == 'Athlete-wise Analysis':
     if events:
         st.write('\n'.join(f"- {event}" for event in events))
     else:
-        st.write("No events data available for this athlete.")
+        st.write("No events available for this athlete in which he won a medal.")
 
 
     st.header(selected_athlete + ' Medal Tally')
@@ -231,12 +231,10 @@ if user_menu == 'Athlete-wise Analysis':
     selected_sport = st.selectbox('Select a Sport', sport_list)
     temp_df = helper.weight_v_height(df,selected_sport)
     fig,ax = plt.subplots()
-    # ax = sns.scatterplot(temp_df['Weight'],temp_df['Height'],hue=temp_df['Medal'],style=temp_df['Sex'],s=60)
     ax = sns.scatterplot(data=temp_df, x='Weight', y='Height', hue='Medal', style='Sex', s=60)
     ax.set_xlabel('Weight')
     ax.set_ylabel('Height')
     ax.set_title('Scatter Plot of Weight vs Height by Medal and Sex')
-
     ax.legend(title='Medal and Sex')
     st.pyplot(fig)
 
