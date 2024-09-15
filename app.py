@@ -4,6 +4,8 @@ import pandas as pd
 import preprocess,helper
 import plotly.express as px
 import seaborn as sns
+import plotly.figure_factory as ff
+
 
 st.sidebar.title('Olympics Analysis')
 
@@ -48,28 +50,28 @@ if user_menu == 'Overall Analysis':
 
 
     with col1:
-        st.header('Editions')
-        st.title(edition)
+        st.title('Editions')
+        st.header(edition)
     
     with col2:
-        st.header('Hosts')
-        st.title(cities)
+        st.title('Hosts')
+        st.header(cities)
     
     with col3:
-        st.header('Sports')
-        st.title(sports)
+        st.title('Sports')
+        st.header(sports)
     
     with col4:
-        st.header('Events')
-        st.title(events)
+        st.title('Events')
+        st.header(events)
     
     with col5:
-        st.header('Nations')
-        st.title(nations)
+        st.title('Nations')
+        st.header(nations)
     
     with col6:
-        st.header('Athletes')
-        st.title(athletes)
+        st.title('Athletes')
+        st.header(athletes)
 
     st.title('Nations Participitaion by Edition')
     no_participating_nation = helper.participation_stats(df,'region')
@@ -118,3 +120,128 @@ if user_menu == 'Overall Analysis':
 
     successful_athletes = helper.most_successful_athletes(df, selected_sport)
     st.table(successful_athletes)
+
+if user_menu == 'Country-wise Analysis':
+    st.title('Country-wise Analysis')
+
+    country = df['region'].dropna().unique().tolist()
+    country.sort()
+    selected_country = st.selectbox('Select Country:', country)
+
+    st.header(selected_country + ' Medal Tally over the years')
+    country_medal_tally = helper.yearwise_medal_tally(df, selected_country)
+    fig = px.line(country_medal_tally, x='Year', y='Medals')
+    fig.update_traces(line=dict(color='blueviolet')) 
+
+    st.plotly_chart(fig)
+
+    st.header(selected_country + ' Excels in the following Sports')
+    pt = helper.country_event_heatmap(df, selected_country)
+    fig, ax = plt.subplots(figsize=(20, 20))
+    heatmap = sns.heatmap(pt, ax=ax, cmap='Purples_r', annot=True)
+    ax.tick_params(axis='x', colors='white')
+    ax.tick_params(axis='y', colors='white')
+
+    fig.patch.set_facecolor('none')
+    st.pyplot(fig)
+
+    st.header('Top 10 Athletes from ' + selected_country)
+    athletes_df = helper.get_top_athletes_by_country(df, selected_country)
+    st.table(athletes_df)
+
+if user_menu == 'Athlete-wise Analysis':
+    st.title('Athlete-wise Analysis')
+
+    athlete_df = df.drop_duplicates(subset=['Name', 'region'])
+
+    x1 = athlete_df['Age'].dropna()
+    x2 = athlete_df[athlete_df['Medal'] == 'Gold']['Age'].dropna()
+    x3 = athlete_df[athlete_df['Medal'] == 'Silver']['Age'].dropna()
+    x4 = athlete_df[athlete_df['Medal'] == 'Bronze']['Age'].dropna()
+
+    st.header('Distribution of Age of Athletes')
+    fig = ff.create_distplot([x1, x2, x3, x4], group_labels=['Overall', 'Gold', 'Silver', 'Bronze'], colors=['#D3D3D3', '#FFD700', '#C0C0C0', '#CD7F32'],show_hist=False, show_rug=False)
+    st.plotly_chart(fig)
+
+    athlete = df['Name'].dropna().unique().tolist()
+    athlete.sort()
+    selected_athlete = st.selectbox('Select Athlete:', athlete)
+
+    st.header(selected_athlete + ' Medal Tally over the Years')
+    athlete_medal_tally = df[df['Name'] == selected_athlete]
+    athlete_medal_tally = athlete_medal_tally.groupby(['Year', 'Medal', 'Sport','Event']).size().reset_index(name='Count')
+    medal_colors = {
+        'Gold': '#FFD700',  # Gold color
+        'Silver': '#C0C0C0',  # Silver color
+        'Bronze': '#CD7F32'  # Bronze color
+    }
+    fig = px.bar(athlete_medal_tally, x='Year', y='Count', color='Medal', 
+                color_discrete_map=medal_colors, barmode='group')
+    st.plotly_chart(fig)
+
+    st.header(f"{selected_athlete} Participated in the Following Sports")
+    sports = athlete_medal_tally['Sport'].unique().tolist()
+    sports.sort()
+    if sports:
+        st.write('\n'.join(f"- {sport}" for sport in sports))
+    else:
+        st.write("No sports data available for this athlete.")
+
+    st.header(f"{selected_athlete} Participated in the Following Events")
+    events = athlete_medal_tally['Event'].unique().tolist()
+    events.sort()
+    if events:
+        st.write('\n'.join(f"- {event}" for event in events))
+    else:
+        st.write("No events data available for this athlete.")
+
+
+    st.header(selected_athlete + ' Medal Tally')
+    medal_tally = athlete_medal_tally.groupby('Medal').size().reset_index(name='Medals')
+    fig = px.pie(medal_tally, values='Medals', names='Medal', title='Medal Tally')
+    fig.update_traces(textposition='inside', textinfo='percent+label')
+    st.plotly_chart(fig)
+
+    x = []
+    name = []
+    famous_sports = ['Basketball', 'Judo', 'Football', 'Tug-Of-War', 'Athletics',
+                     'Swimming', 'Badminton', 'Sailing', 'Gymnastics',
+                     'Art Competitions', 'Handball', 'Weightlifting', 'Wrestling',
+                     'Water Polo', 'Hockey', 'Rowing', 'Fencing',
+                     'Shooting', 'Boxing', 'Taekwondo', 'Cycling', 'Diving', 'Canoeing',
+                     'Tennis', 'Golf', 'Softball', 'Archery',
+                     'Volleyball', 'Synchronized Swimming', 'Table Tennis', 'Baseball',
+                     'Rhythmic Gymnastics', 'Rugby Sevens',
+                     'Beach Volleyball', 'Triathlon', 'Rugby', 'Polo', 'Ice Hockey']
+    for sport in famous_sports:
+        temp_df = athlete_df[athlete_df['Sport'] == sport]
+        x.append(temp_df[temp_df['Medal'] == 'Gold']['Age'].dropna())
+        name.append(sport)
+
+    fig = ff.create_distplot(x, name, show_hist=False, show_rug=False)
+    fig.update_layout(autosize=False, width=1000, height=600)
+    st.title("Distribution of Age wrt Sports(Gold Medalists Only)")
+    st.plotly_chart(fig)
+
+    sport_list = df['Sport'].unique().tolist()
+    sport_list.sort()
+    sport_list.insert(0, 'Overall')
+
+    st.title('Height Vs Weight')
+    selected_sport = st.selectbox('Select a Sport', sport_list)
+    temp_df = helper.weight_v_height(df,selected_sport)
+    fig,ax = plt.subplots()
+    # ax = sns.scatterplot(temp_df['Weight'],temp_df['Height'],hue=temp_df['Medal'],style=temp_df['Sex'],s=60)
+    ax = sns.scatterplot(data=temp_df, x='Weight', y='Height', hue='Medal', style='Sex', s=60)
+    ax.set_xlabel('Weight')
+    ax.set_ylabel('Height')
+    ax.set_title('Scatter Plot of Weight vs Height by Medal and Sex')
+
+    ax.legend(title='Medal and Sex')
+    st.pyplot(fig)
+
+    st.title("Men Vs Women Participation Over the Years")
+    final = helper.men_vs_women(df)
+    fig = px.line(final, x="Year", y=["Male", "Female"])
+    fig.update_layout(autosize=False, width=1000, height=600)
+    st.plotly_chart(fig)
