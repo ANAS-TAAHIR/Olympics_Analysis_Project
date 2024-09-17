@@ -67,24 +67,16 @@ def country_event_heatmap(df,country):
 def get_top_athletes_by_country(df, country):
     temp_df = df.dropna(subset=['Medal'])
     temp_df = temp_df[temp_df['region'] == country]
-    
-    # Group by both 'Name' and 'Sport' to distinguish athletes with the same name
     athlete_medals = temp_df.groupby(['Name', 'Sport']).size().reset_index(name='Medals')
-    
-    # Merge with original dataframe to get the other details and avoid duplicate athletes
     result_df = athlete_medals.merge(df[['Name', 'Sport', 'region']].drop_duplicates(), on=['Name', 'Sport'])
-    
-    # Drop duplicates and select necessary columns
     result_df = result_df[['Name', 'Medals', 'Sport']].sort_values(by='Medals', ascending=False)
-    
-    # Rename columns as per the requirement
     result_df = result_df.rename(columns={'Medals': 'Medals', 'Sport': 'Sports'}).reset_index(drop=True)
     result_df = result_df.head(10)
     return result_df
 
-def weight_v_height(df,sport):
-    athlete_df = df.drop_duplicates(subset=['Name', 'region'])
-    athlete_df['Medal'].fillna('No Medal', inplace=True)
+def weight_v_height(df, sport):
+    athlete_df = df.drop_duplicates(subset=['Name', 'region'], inplace=False)
+    athlete_df = athlete_df.fillna({'Medal': 'No Medal'})
     if sport != 'Overall':
         temp_df = athlete_df[athlete_df['Sport'] == sport]
         return temp_df
@@ -93,13 +85,9 @@ def weight_v_height(df,sport):
 
 def men_vs_women(df):
     athlete_df = df.drop_duplicates(subset=['Name', 'region'])
-
     men = athlete_df[athlete_df['Sex'] == 'M'].groupby('Year').count()['Name'].reset_index()
     women = athlete_df[athlete_df['Sex'] == 'F'].groupby('Year').count()['Name'].reset_index()
-
     final = men.merge(women, on='Year', how='left')
     final.rename(columns={'Name_x': 'Male', 'Name_y': 'Female'}, inplace=True)
-
     final.fillna(0, inplace=True)
-
     return final
